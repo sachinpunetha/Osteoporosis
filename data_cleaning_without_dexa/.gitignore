@@ -1,0 +1,10 @@
+# Ignore the entire virtual environment
+osteoporosis/
+
+# Ignore your pickle/joblib files
+*.joblib
+
+
+# Ignore Jupyter Notebook background caches
+.ipynb_checkpoints/
+
