@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Knee X-ray Osteoporosis Classifier</title>
+<style>
+  body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; }
+  #dropzone {
+    border: 2px dashed #999; border-radius: 8px; padding: 40px;
+    text-align: center; cursor: pointer; color: #666;
+  }
+  #dropzone.dragover { border-color: #333; background: #f5f5f5; }
+  #preview { max-width: 100%; margin-top: 20px; display: none; }
+  #result { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; }
+  .prob-bar { background: #eee; border-radius: 4px; margin: 4px 0; overflow: hidden; }
+  .prob-fill { background: #4a90d9; color: white; padding: 4px 8px; font-size: 13px; }
+  #disclaimer { font-size: 12px; color: #999; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h2>Knee X-ray Classifier</h2>
+<p>Upload a knee X-ray image to classify as Normal, Osteopenia, or Osteoporosis.</p>
+
+<div id="dropzone">Click or drag an image here</div>
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+<img id="preview">
+
+<div id="result"></div>
+<p id="disclaimer">This is a research prototype, not a certified medical device. Results should not be used for clinical decision-making.</p>
+
+<script>
+  // Update this to your deployed backend URL
+  const API_URL = "http://localhost:8000/predict";
+
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const preview = document.getElementById("preview");
+  const resultDiv = document.getElementById("result");
+
+  dropzone.onclick = () => fileInput.click();
+  dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add("dragover"); };
+  dropzone.ondragleave = () => dropzone.classList.remove("dragover");
+  dropzone.ondrop = (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    handleFile(e.dataTransfer.files[0]);
+  };
+  fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+  function handleFile(file) {
+    if (!file) return;
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+    resultDiv.style.display = "none";
+    uploadImage(file);
+  }
+
+  async function uploadImage(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = "Analyzing...";
+
+    try {
+      const response = await fetch(API_URL, { method: "POST", body: formData });
+      if (!response.ok) throw new Error("Prediction failed");
+      const data = await response.json();
+      renderResult(data);
+    } catch (err) {
+      resultDiv.innerHTML = "Error: " + err.message;
+    }
+  }
+
+  function renderResult(data) {
+    let html = `<strong>Prediction: ${data.predicted_class}</strong> (${(data.confidence * 100).toFixed(1)}% confidence)<br><br>`;
+    for (const [cls, prob] of Object.entries(data.probabilities)) {
+      const pct = (prob * 100).toFixed(1);
+      html += `
+        <div>${cls}</div>
+        <div class="prob-bar"><div class="prob-fill" style="width:${pct}%">${pct}%</div></div>
+      `;
+    }
+    resultDiv.innerHTML = html;
+  }
+</script>
+
+</body>
+</html>
