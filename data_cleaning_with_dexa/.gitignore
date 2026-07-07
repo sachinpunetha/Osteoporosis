@@ -1,0 +1,7 @@
+# Ignore python compiled files
+__pycache__/
+*.pyc
+
+# Ignore large machine learning model files
+*.pkl
+*.joblib
